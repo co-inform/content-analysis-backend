@@ -4,22 +4,24 @@ from nltk.sentiment.vader import SentimentIntensityAnalyzer
 from nltk.tag import pos_tag
 from nltk.tokenize import TweetTokenizer
 from spellchecker import SpellChecker
+import readability
 
 '''
 This package contains content features for measuring the credibility.
 generic content features proposed by Olteanu et al. [2013]
-in the paper, sentiment analysis is measured with polarity of the page,
-num of negative, positive, subjective and objective sentences. We use rule based sentiment analyzer (Vader)
+Notes:
+1 - in the paper, sentiment analysis is measured with polarity of the page, num of negative, positive, subjective and objective sentences. We use rule based sentiment analyzer (Vader)
 in order to compute sentiment of the sentences
+
 '''
 
 sent_analyzer = SentimentIntensityAnalyzer()
 spell_checker = SpellChecker(distance=2)
 
 class ContentFeats:
-    def __init__(self, text):
+    def __init__(self, text, lang = 'en'):
         self.text = text
-
+        self.lang = lang
         # ====== Generic Content feats proposed by Olteanu et al. [2013] ======
         self.num_exclamations = 0
         self.num_commas = 0
@@ -33,6 +35,7 @@ class ContentFeats:
         self.num_spelling_errors = None
         self.text_complexity = None
         self.informativeness = None
+        # readability measurement
         self.smog = None
         self.category = None
         # NN, NNP, NN, NNPS, NNS
@@ -67,6 +70,13 @@ class ContentFeats:
         self.num_VBZ = 0
         # present participant
         self.num_VBG = 0
+        # readability measurements
+        self.kincaid = None
+        self.ari = None
+        self.coleman_liau = None
+        self.lix = None
+        self.flesch = None
+        self.rix = None
 
     def compute(self, tokenizer=TweetTokenizer()):
         self.num_exclamations = sum(1 for char in text if char == '!')
@@ -124,6 +134,16 @@ class ContentFeats:
         self.polarity_compound = sent_results['compound']
 
         self.num_spelling_errors = self._count_misspells(tokens)
+
+        readability_metrics = readability.getmeasures(text, lang=self.lang)
+        self.kincaid = readability_metrics['readability grades']['Kincaid']
+        self.ari = readability_metrics['readability grades']['ARI']
+        self.coleman_liau = readability_metrics['readability grades']['Coleman-Liau']
+        self.lix = readability_metrics['readability grades']['LIX']
+        self.flesch = readability_metrics['readability grades']['FleschReadingEase']
+        self.rix = readability_metrics['readability grades']['RIX']
+        self.smog = readability_metrics['readability grades']['SMOGIndex']
+
 
         return vars(self)
 

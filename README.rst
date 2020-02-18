@@ -60,3 +60,6 @@ Credibility features Olteanu et al [2013]:
       year      = {2013}
     }
 
+
+Readability metrics:
+    https://github.com/andreasvc/readability
