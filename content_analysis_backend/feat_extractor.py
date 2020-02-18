@@ -1,12 +1,18 @@
 from collections import Counter
 
+from nltk.sentiment.vader import SentimentIntensityAnalyzer
 from nltk.tag import pos_tag
 from nltk.tokenize import TweetTokenizer
 
 '''
 This package contains content features for measuring the credibility.
 generic content features proposed by Olteanu et al. [2013]
+in the paper, sentiment analysis is measured with polarity of the page,
+num of negative, positive, subjective and objective sentences. We use rule based sentiment analyzer (Vader)
+in order to compute sentiment of the sentences
 '''
+
+sent_analyzer = SentimentIntensityAnalyzer()
 
 
 class ContentFeats:
@@ -19,11 +25,10 @@ class ContentFeats:
         self.num_dots = 0
         self.num_questions = 0
         self.num_tokens = 0
-        self.polarity = None
-        self.positive = None
-        self.negative = None
-        self.subjective = None
-        self.objective = None
+        self.polarity_pos = 0.0
+        self.polarity_neg = 0.0
+        self.polarity_neutral = 0.0
+        self.polarity_compound = 0.0
         self.num_spelling_errors = None
         self.text_complexity = None
         self.informativeness = None
@@ -109,6 +114,13 @@ class ContentFeats:
 
         self.num_VBPresent = self.num_VBP + self.num_VBG + self.num_VBZ
         self.num_VB = self.num_VB + self.num_VBPast + self.num_VBPresent
+
+        sent_results = sent_analyzer.polarity_scores(self.text)
+
+        self.polarity_pos = sent_results['pos']
+        self.polarity_neg = sent_results['neg']
+        self.polarity_neutral = sent_results['neu']
+        self.polarity_compound = sent_results['compound']
 
         return vars(self)
 
