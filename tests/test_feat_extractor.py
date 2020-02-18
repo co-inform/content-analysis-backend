@@ -19,4 +19,3 @@ def test_feature_extraction(sample_text):
     assert 1 == feat_extractor.count_dots(sample_text)
     assert 6 == feat_extractor.count_exclamations(sample_text)
 
-
