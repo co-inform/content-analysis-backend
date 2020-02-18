@@ -39,3 +39,24 @@ This package was created with Cookiecutter_ and the `audreyr/cookiecutter-pypack
 
 .. _Cookiecutter: https://github.com/audreyr/cookiecutter
 .. _`audreyr/cookiecutter-pypackage`: https://github.com/audreyr/cookiecutter-pypackage
+
+Acknowledgments
+---------------
+
+Credibility features Olteanu et al [2013]:
+
+
+    @inproceedings{DBLP:conf/ecir/OlteanuPLA13,
+      author    = {Alexandra Olteanu and
+                   Stanislav Peshterliev and
+                   Xin Liu and
+                   Karl Aberer},
+      title     = {Web Credibility: Features Exploration and Credibility Prediction},
+      booktitle = {{ECIR}},
+      series    = {Lecture Notes in Computer Science},
+      volume    = {7814},
+      pages     = {557--568},
+      publisher = {Springer},
+      year      = {2013}
+    }
+

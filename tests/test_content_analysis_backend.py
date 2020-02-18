@@ -14,7 +14,7 @@ def read_content(tweet_path):
     return data
 
 @pytest.fixture
-def sample():
+def conversation():
     sample_dir = Path(os.path.dirname(__file__))  / 'sample'
     conversation_structure_path = list(Path(sample_dir).glob('*/structure.json'))[0]
     with open(conversation_structure_path) as f:
@@ -51,8 +51,8 @@ def test_content(response):
     # assert 'GitHub' in BeautifulSoup(response.content).title.string
 
 
-def test_feature_extraction(sample):
-    assert len(sample['replies']) > 0
-    pass
+def test_feature_extraction(conversation):
+    assert len(conversation['replies']) > 0
+
 
 
