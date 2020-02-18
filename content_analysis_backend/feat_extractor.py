@@ -3,6 +3,7 @@ from collections import Counter
 from nltk.sentiment.vader import SentimentIntensityAnalyzer
 from nltk.tag import pos_tag
 from nltk.tokenize import TweetTokenizer
+from spellchecker import SpellChecker
 
 '''
 This package contains content features for measuring the credibility.
@@ -13,7 +14,7 @@ in order to compute sentiment of the sentences
 '''
 
 sent_analyzer = SentimentIntensityAnalyzer()
-
+spell_checker = SpellChecker(distance=2)
 
 class ContentFeats:
     def __init__(self, text):
@@ -68,10 +69,10 @@ class ContentFeats:
         self.num_VBG = 0
 
     def compute(self, tokenizer=TweetTokenizer()):
-        self.num_exclamations = count_exclamations(self.text)
-        self.num_commas = count_commas(self.text)
-        self.num_dots = count_dots(self.text)
-        self.num_questions = count_questions(self.text)
+        self.num_exclamations = sum(1 for char in text if char == '!')
+        self.num_commas = sum(1 for char in text if char == ',')
+        self.num_dots = sum(1 for char in text if char == '.')
+        self.num_questions = sum(1 for char in text if char == '?')
 
         # split text into tokens, default tokenizer is TweetTokenizer
         tokens = tokenizer.tokenize(self.text)
@@ -122,26 +123,15 @@ class ContentFeats:
         self.polarity_neutral = sent_results['neu']
         self.polarity_compound = sent_results['compound']
 
+        self.num_spelling_errors = self._count_misspells(tokens)
+
         return vars(self)
 
-
-def count_exclamations(text):
-    return sum(1 for char in text if char == '!')
-
-
-def count_commas(text):
-    return sum(1 for char in text if char == ',')
-
-
-def count_dots(text):
-    return sum(1 for char in text if char == '.')
-
-
-def count_questions(text):
-    return sum(1 for char in text if char == '?')
+    def _count_misspells(self, tokens):
+        return len(spell_checker.unknown(tokens))
 
 
 if __name__ == '__main__':
-    text = 'France: !!!!!! ?????? ,,, 10 people dead after shooting at HQ of satirical weekly newspaper #CharlieHebdo, according to witnesses http:\/\/t.co\/FkYxGmuS58'
+    text = 'France: frnace !!!!!! ?????? ,,, 10 people dead after shooting at HQ of satirical weekly newspaper #CharlieHebdo, according to witnesses http:\/\/t.co\/FkYxGmuS58'
     results = ContentFeats(text).compute()
     print(results)

@@ -1,12 +1,14 @@
 #!/usr/bin/env python
 
 """Tests for `feature extractor` package."""
-import pytest
-import sys
 import os
+import sys
 
-sys.path.append(os.path.join(os.path.dirname(__file__),os.pardir,'../content_analysis_backend'))
+import pytest
+
+sys.path.append(os.path.join(os.path.dirname(__file__), os.pardir, '../content_analysis_backend'))
 from content_analysis_backend import feat_extractor
+
 
 @pytest.fixture
 def sample_text():
@@ -14,8 +16,8 @@ def sample_text():
 
 
 def test_feature_extraction(sample_text):
-    assert 6 == feat_extractor.count_exclamations(sample_text)
-    assert 4 == feat_extractor.count_commas(sample_text)
-    assert 1 == feat_extractor.count_dots(sample_text)
-    assert 6 == feat_extractor.count_exclamations(sample_text)
-
+    count_feats = feat_extractor.ContentFeats(sample_text).compute()
+    assert 6 == count_feats['num_exclamations']
+    assert 4 == count_feats['num_commas']
+    assert 1 == count_feats['num_dots']
+    assert 6 == count_feats['num_exclamations']

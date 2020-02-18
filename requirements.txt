@@ -13,3 +13,4 @@ pytest-runner==5.1
 
 nltk
 numpy
+pyspellchecker
