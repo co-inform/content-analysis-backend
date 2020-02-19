@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-"""Tests for `app` package."""
+"""Tests for `src` package."""
 import pytest
 import os
 import json

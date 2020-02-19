@@ -4,8 +4,12 @@ import numpy as np
 import readability
 from nltk.sentiment.vader import SentimentIntensityAnalyzer
 from nltk.tag import pos_tag
+from nltk import sent_tokenize
+
 from nltk.tokenize import TweetTokenizer
 from spellchecker import SpellChecker
+from textblob import TextBlob
+
 
 '''
 This package contains content features for measuring the credibility.
@@ -35,6 +39,7 @@ class ContentFeats:
         self.polarity_neg = 0.0
         self.polarity_neutral = 0.0
         self.polarity_compound = 0.0
+        self.subjectivity = 0.0
         self.num_spelling_errors = 0
         self.text_complexity = None
         self.informativeness = None
@@ -150,13 +155,23 @@ class ContentFeats:
         # assign text entropy as text complexity
         word_hist = Counter([token for token in tokens])
         entropy_sum = 0
-        for word, count in word_hist:
+        for word, count in word_hist.items():
             entropy_sum += (count * (np.math.log10(self.num_tokens) - np.math.log10(count)))
 
         self.text_complexity = (1 / len(tokens)) * entropy_sum
 
+        # assign subjectivity
+        sentences = TextBlob(text).sentences
+        subjectivity = 0
+        for sentence in sentences:
+            subjectivity += sentence.sentiment.subjectivity
+        self.subjectivity = subjectivity / len(sentences)
+
         # assign text category
         # @TODO
+
+        # semantic features
+
 
         return vars(self)
 
