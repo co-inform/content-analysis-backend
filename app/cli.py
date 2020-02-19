@@ -1,17 +1,17 @@
-"""Console script for content_analysis_backend."""
+"""Console script for app."""
 import argparse
 import sys
 
 
 def main():
-    """Console script for content_analysis_backend."""
+    """Console script for app."""
     parser = argparse.ArgumentParser()
     parser.add_argument('_', nargs='*')
     args = parser.parse_args()
 
     print("Arguments: " + str(args._))
     print("Replace this message by putting your code into "
-          "content_analysis_backend.cli.main")
+          "app.cli.main")
     return 0
 
 

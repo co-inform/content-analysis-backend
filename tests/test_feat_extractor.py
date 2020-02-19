@@ -6,8 +6,8 @@ import sys
 
 import pytest
 
-sys.path.append(os.path.join(os.path.dirname(__file__), os.pardir, '../content_analysis_backend'))
-from content_analysis_backend import feat_extractor
+sys.path.append(os.path.join(os.path.dirname(__file__), os.pardir, '../app'))
+from app import feat_extractor
 
 
 @pytest.fixture

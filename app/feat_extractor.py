@@ -1,10 +1,11 @@
 from collections import Counter
 
+import numpy as np
+import readability
 from nltk.sentiment.vader import SentimentIntensityAnalyzer
 from nltk.tag import pos_tag
 from nltk.tokenize import TweetTokenizer
 from spellchecker import SpellChecker
-import readability
 
 '''
 This package contains content features for measuring the credibility.
@@ -12,14 +13,16 @@ generic content features proposed by Olteanu et al. [2013]
 Notes:
 1 - in the paper, sentiment analysis is measured with polarity of the page, num of negative, positive, subjective and objective sentences. We use rule based sentiment analyzer (Vader)
 in order to compute sentiment of the sentences
-
+2- We add additional readability metrics rather than smog
+3- We exclude the informativeness since it is not applicable for tweets
 '''
 
 sent_analyzer = SentimentIntensityAnalyzer()
 spell_checker = SpellChecker(distance=2)
 
+
 class ContentFeats:
-    def __init__(self, text, lang = 'en'):
+    def __init__(self, text, lang='en'):
         self.text = text
         self.lang = lang
         # ====== Generic Content feats proposed by Olteanu et al. [2013] ======
@@ -32,7 +35,7 @@ class ContentFeats:
         self.polarity_neg = 0.0
         self.polarity_neutral = 0.0
         self.polarity_compound = 0.0
-        self.num_spelling_errors = None
+        self.num_spelling_errors = 0
         self.text_complexity = None
         self.informativeness = None
         # readability measurement
@@ -91,8 +94,6 @@ class ContentFeats:
         # extract pos tags with Penn Treebank Tags
         tags = pos_tag(tokens)
         tag_hist = Counter([tag_hist for token, tag_hist in tags])
-
-        # assign POS fields
         for tag, count in tag_hist.items():
             if tag == 'NN' or tag == 'NNP' or tag == 'NN' or tag == 'NNPS' or tag == 'NNS':
                 self.num_NN += count
@@ -126,15 +127,17 @@ class ContentFeats:
         self.num_VBPresent = self.num_VBP + self.num_VBG + self.num_VBZ
         self.num_VB = self.num_VB + self.num_VBPast + self.num_VBPresent
 
+        # sentiment analysis
         sent_results = sent_analyzer.polarity_scores(self.text)
-
         self.polarity_pos = sent_results['pos']
         self.polarity_neg = sent_results['neg']
         self.polarity_neutral = sent_results['neu']
         self.polarity_compound = sent_results['compound']
 
+        # assign count of misspelling words
         self.num_spelling_errors = self._count_misspells(tokens)
 
+        # assign readability metrics
         readability_metrics = readability.getmeasures(text, lang=self.lang)
         self.kincaid = readability_metrics['readability grades']['Kincaid']
         self.ari = readability_metrics['readability grades']['ARI']
@@ -144,6 +147,16 @@ class ContentFeats:
         self.rix = readability_metrics['readability grades']['RIX']
         self.smog = readability_metrics['readability grades']['SMOGIndex']
 
+        # assign text entropy as text complexity
+        word_hist = Counter([token for token in tokens])
+        entropy_sum = 0
+        for word, count in word_hist:
+            entropy_sum += (count * (np.math.log10(self.num_tokens) - np.math.log10(count)))
+
+        self.text_complexity = (1 / len(tokens)) * entropy_sum
+
+        # assign text category
+        # @TODO
 
         return vars(self)
 

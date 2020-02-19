@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-"""Tests for `content_analysis_backend` package."""
+"""Tests for `app` package."""
 import pytest
 import os
 import json
