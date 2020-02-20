@@ -64,4 +64,4 @@ Credibility features Olteanu et al [2013]:
 Readability metrics:
     https://github.com/andreasvc/readability
     
-This work is sponsored by EU Project Horizon 2020: [Co-inform](https://coinform.eu/)
+This work is sponsored by EU Project Horizon 2020 [Co-inform](https://coinform.eu/)
