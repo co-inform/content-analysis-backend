@@ -1,11 +1,10 @@
 from collections import Counter
 
 import numpy as np
+import re
 import readability
 from nltk.sentiment.vader import SentimentIntensityAnalyzer
 from nltk.tag import pos_tag
-from nltk import sent_tokenize
-
 from nltk.tokenize import TweetTokenizer
 from spellchecker import SpellChecker
 from textblob import TextBlob
@@ -24,6 +23,9 @@ in order to compute sentiment of the sentences
 sent_analyzer = SentimentIntensityAnalyzer()
 spell_checker = SpellChecker(distance=2)
 
+URL_REGEX = '(https?:\/\/)?([\da-z\.-]+)\.([a-z\.]{2,6})([\/\w\.-]*)*\/?\S'
+MENTION_REGEX = '([@][\w_-]+)'
+HASHTAG_REGEX = '([#][\w_-]+)'
 
 class ContentFeats:
     def __init__(self, text, lang='en'):
@@ -56,6 +58,7 @@ class ContentFeats:
         self.num_RB = 0
         # determiner
         self.num_DT = 0
+        self.num_char = 0
 
         # ====== Task specific feats ======
         # numeral, cardinal
@@ -85,8 +88,27 @@ class ContentFeats:
         self.lix = None
         self.flesch = None
         self.rix = None
+        self.num_url = 0
+        self.num_mention = 0
+        self.num_hashtag = 0
+
 
     def compute(self, tokenizer=TweetTokenizer()):
+        self.num_char = len(self.text)
+        # @todo fix this
+        self.text = re.sub(URL_REGEX, '$URL$', self.text)
+        self.text = re.sub(MENTION_REGEX, '$MENTION$', self.text)
+        self.text = re.sub(HASHTAG_REGEX, '$HASHTAG$', self.text)
+
+        self.num_url = self.text.count('$URL$')
+        self.num_mention = self.text.count('$MENTION$')
+        self.num_hashtag = self.text.count('$HASHTAG$')
+
+        # clean tweet from hashtags, urls, and mentions
+        self.text = self.text.replace('$HASHTAG$','')
+        self.text = self.text.replace('$URL$', '')
+        self.text = self.text.replace('$MENTION$', '')
+
         self.num_exclamations = sum(1 for char in text if char == '!')
         self.num_commas = sum(1 for char in text if char == ',')
         self.num_dots = sum(1 for char in text if char == '.')
@@ -170,7 +192,11 @@ class ContentFeats:
         # assign text category
         # @TODO
 
-        # semantic features
+        # check credibility of the user
+        # @TODO
+
+        # check credibility of domain url
+        # @TODO
 
 
         return vars(self)
@@ -180,6 +206,6 @@ class ContentFeats:
 
 
 if __name__ == '__main__':
-    text = 'France: frnace !!!!!! ?????? ,,, 10 people dead after shooting at HQ of satirical weekly newspaper #CharlieHebdo, according to witnesses http:\/\/t.co\/FkYxGmuS58'
+    text = 'France: @twitter frnace !!!!!! ?????? ,,, 10 people dead after shooting at HQ of satirical weekly newspaper #CharlieHebdo, according to witnesses http:\/\/t.co\/FkYxGmuS58'
     results = ContentFeats(text).compute()
     print(results)
