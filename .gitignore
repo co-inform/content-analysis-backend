@@ -105,3 +105,6 @@ ENV/
 .vscode/
 
 **/data
+
+
+config.cfg

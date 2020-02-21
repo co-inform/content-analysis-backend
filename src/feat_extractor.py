@@ -1,14 +1,15 @@
+import re
 from collections import Counter
 
+import emoji
 import numpy as np
-import re
 import readability
 from nltk.sentiment.vader import SentimentIntensityAnalyzer
 from nltk.tag import pos_tag
 from nltk.tokenize import TweetTokenizer
 from spellchecker import SpellChecker
 from textblob import TextBlob
-
+from emojipedia import Emojipedia
 
 '''
 This package contains content features for measuring the credibility.
@@ -26,6 +27,7 @@ spell_checker = SpellChecker(distance=2)
 URL_REGEX = '(https?:\/\/)?([\da-z\.-]+)\.([a-z\.]{2,6})([\/\w\.-]*)*\/?\S'
 MENTION_REGEX = '([@][\w_-]+)'
 HASHTAG_REGEX = '([#][\w_-]+)'
+
 
 class ContentFeats:
     def __init__(self, text, lang='en'):
@@ -92,7 +94,6 @@ class ContentFeats:
         self.num_mention = 0
         self.num_hashtag = 0
 
-
     def compute(self, tokenizer=TweetTokenizer()):
         self.num_char = len(self.text)
         # @todo fix this
@@ -105,14 +106,14 @@ class ContentFeats:
         self.num_hashtag = self.text.count('$HASHTAG$')
 
         # clean tweet from hashtags, urls, and mentions
-        self.text = self.text.replace('$HASHTAG$','')
+        self.text = self.text.replace('$HASHTAG$', '')
         self.text = self.text.replace('$URL$', '')
         self.text = self.text.replace('$MENTION$', '')
 
-        self.num_exclamations = sum(1 for char in text if char == '!')
-        self.num_commas = sum(1 for char in text if char == ',')
-        self.num_dots = sum(1 for char in text if char == '.')
-        self.num_questions = sum(1 for char in text if char == '?')
+        self.num_exclamations = sum(1 for char in self.text if char == '!')
+        self.num_commas = sum(1 for char in self.text if char == ',')
+        self.num_dots = sum(1 for char in self.text if char == '.')
+        self.num_questions = sum(1 for char in self.text if char == '?')
 
         # split text into tokens, default tokenizer is TweetTokenizer
         tokens = tokenizer.tokenize(self.text)
@@ -165,7 +166,7 @@ class ContentFeats:
         self.num_spelling_errors = self._count_misspells(tokens)
 
         # assign readability metrics
-        readability_metrics = readability.getmeasures(text, lang=self.lang)
+        readability_metrics = readability.getmeasures(self.text, lang=self.lang)
         self.kincaid = readability_metrics['readability grades']['Kincaid']
         self.ari = readability_metrics['readability grades']['ARI']
         self.coleman_liau = readability_metrics['readability grades']['Coleman-Liau']
@@ -183,7 +184,7 @@ class ContentFeats:
         self.text_complexity = (1 / len(tokens)) * entropy_sum
 
         # assign subjectivity
-        sentences = TextBlob(text).sentences
+        sentences = TextBlob(self.text).sentences
         subjectivity = 0
         for sentence in sentences:
             subjectivity += sentence.sentiment.subjectivity
@@ -192,12 +193,9 @@ class ContentFeats:
         # assign text category
         # @TODO
 
-        # check credibility of the user
-        # @TODO
-
-        # check credibility of domain url
-        # @TODO
-
+        # convert emojis to text
+        self.text = emoji.demojize(self.text)
+        self.text = self.text.replace("::", " ")  # for emojis that don't have space between them
 
         return vars(self)
 
@@ -205,7 +203,16 @@ class ContentFeats:
         return len(spell_checker.unknown(tokens))
 
 
+def compute_user_cred(user):
+    pass
+
+
+def computer_domain_cred(domain):
+    pass
+
+
 if __name__ == '__main__':
-    text = 'France: @twitter frnace !!!!!! ?????? ,,, 10 people dead after shooting at HQ of satirical weekly newspaper #CharlieHebdo, according to witnesses http:\/\/t.co\/FkYxGmuS58'
+    text = 'France: :-) :D @twitter frnace !!!!!! ?????? ,,, 10 people dead after shooting at HQ of satirical weekly newspaper #CharlieHebdo, according to witnesses http:\/\/t.co\/FkYxGmuS58'
     results = ContentFeats(text).compute()
     print(results)
+    print(len(results))

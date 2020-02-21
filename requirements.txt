@@ -16,4 +16,8 @@ numpy
 pyspellchecker
 readability
 textblob
-
+emoji
+emojipedia
+wikipedia
+pandas
+contractions
