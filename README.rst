@@ -20,7 +20,7 @@ content-analysis-backend
 
 
 
-This repository contains source codes of content-analysis module of Co-Inform platform. 
+This resposiory contains source code of content analysis module which assigns credibility score of given tweet. 
 
 
 * Free software: MIT license
@@ -63,3 +63,5 @@ Credibility features Olteanu et al [2013]:
 
 Readability metrics:
     https://github.com/andreasvc/readability
+    
+This work is sponsored by EU Project Horizon 2020 [CoInform](https://coinform.eu/)
