@@ -1,10 +1,13 @@
+import os
 from collections import Counter
 
 import numpy as np
 import readability
+from moralstrength import string_moral_values
 from nltk.sentiment.vader import SentimentIntensityAnalyzer
 from nltk.tag import pos_tag
 from nltk.tokenize import TweetTokenizer
+from nltk.util import ngrams
 from spellchecker import SpellChecker
 from textblob import TextBlob
 
@@ -22,6 +25,25 @@ in order to compute sentiment of the sentences
 
 sent_analyzer = SentimentIntensityAnalyzer()
 spell_checker = SpellChecker(distance=2)
+
+
+class Lexicons:
+    def __init__(self, folder='./data/lexicons'):
+        # =========== [Mejova et al, 2014] =======================
+        with open(os.path.join(folder, "bias-lexicon.txt")) as lex:
+            self.bias = set([l.strip() for l in lex])
+        # =========== Epistemological bias by [Recasens et al, 2013] ====================
+        with open(os.path.join(folder, "assertives.txt")) as lex:
+            self.assertives = set([l.strip() for l in lex])
+        # entailments
+        with open(os.path.join(folder, "implicatives.txt")) as lex:
+            self.implicatives = set([l.strip() for l in lex])
+        with open(os.path.join(folder, "factives.txt")) as lex:
+            self.factives = set([l.strip() for l in lex])
+        with open(os.path.join(folder, "hedges.txt")) as lex:
+            self.hedges = set([l.strip() for l in lex])
+        with open(os.path.join(folder, "report_verbs.txt")) as lex:
+            self.report_verbs = set([l.strip() for l in lex])
 
 
 class TextFeatures:
@@ -100,22 +122,38 @@ class TextFeatures:
         return len(spell_checker.unknown(tokens))
 
     def get_sentiment_feats(self):
-        sentiment_feats = {}
-        sent_results = sent_analyzer.polarity_scores(self.text)
-        sentiment_feats['polarity_pos'] = sent_results['pos']
-        sentiment_feats['polarity_neg'] = sent_results['neg']
-        sentiment_feats['polarity_neutral'] = sent_results['neu']
-        sentiment_feats['polarity_compound'] = sent_results['compound']
+        return sent_analyzer.polarity_scores(self.text)
 
-        # assign the subjectivity
+    def get_bias_feats(self):
+        '''
+        credit to https://github.com/BenjaminDHorne/The-NELA-Toolkit
+        :return:
+        :rtype:
+        '''
+        bias = {}
         sentences = TextBlob(self.text).sentences
         subjectivity = 0
         for sentence in sentences:
             subjectivity += sentence.sentiment.subjectivity
-        sentiment_feats['subjectivity'] = subjectivity / len(sentences)
-        return sentiment_feats
 
-    def complexity_feats(self):
+        bias['subjectivity'] = subjectivity
+
+        tokens = self.tokens
+        bigrams = [" ".join(bg) for bg in ngrams(tokens, 2)]
+        trigrams = [" ".join(tg) for tg in ngrams(tokens, 3)]
+        bias['bias_count'] = float(sum([tokens.count(b) for b in self.bias])) / len(tokens)
+        bias['assertives_count'] = float(sum([tokens.count(a) for a in self.assertives])) / len(tokens)
+        bias['factives_count'] = float(sum([tokens.count(f) for f in self.factives])) / len(tokens)
+        bias['hedges_count'] = sum([tokens.count(h) for h in self.hedges]) + sum(
+            [bigrams.count(h) for h in self.hedges]) + sum(
+            [trigrams.count(h) for h in self.hedges])
+        bias['hedges_count'] = float(bias['hedges_count']) / len(tokens)
+        bias['implicatives_count'] = float(sum([tokens.count(i) for i in self.implicatives])) / len(tokens)
+        bias['report_verbs_count'] = float(sum([tokens.count(r) for r in self.report_verbs])) / len(tokens)
+
+        return bias
+
+    def get_complexity_feats(self):
         complexity_feats = {}
         # assign text entropy as text complexity
         word_hist = Counter([token for token in self.tokens])
@@ -140,7 +178,7 @@ class TextFeatures:
 
         return complexity_feats
 
-    def social_media_specific_feats(self, social_media='Twitter'):
+    def get_social_media_specific_feats(self, social_media='Twitter'):
         social_media_specific_feats = {}
         text = handle_twitter_specific_tags(self.text)
         social_media_specific_feats['num_url'] = text.count('$URL$')
@@ -151,9 +189,16 @@ class TextFeatures:
 
         return social_media_specific_feats
 
+    def get_moral_foundation_feats(self):
+        return string_moral_values(self.text)
+
+
+    def get_emotion_feats(self):
+        pass
+
 
 if __name__ == '__main__':
     text = 'France: :-) :D @twitter frnace !!!!!! ?????? ,,, 10 people dead after shooting at HQ of satirical weekly newspaper #CharlieHebdo, according to witnesses http:\/\/t.co\/FkYxGmuS58'
     tokenizer = TweetTokenizer()
-    results = TextFeatures(text, tokenizer).social_media_specific_feats()
+    results = TextFeatures(text, tokenizer).get_moral_foundation_feats()
     print(results)

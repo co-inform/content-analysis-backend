@@ -21,3 +21,4 @@ emojipedia
 wikipedia
 pandas
 contractions
+moralstrength
