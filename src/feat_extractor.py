@@ -3,6 +3,7 @@ from collections import Counter
 
 import numpy as np
 import readability
+from afinn import Afinn
 from moralstrength import string_moral_values
 from nltk.sentiment.vader import SentimentIntensityAnalyzer
 from nltk.tag import pos_tag
@@ -23,8 +24,9 @@ in order to compute sentiment of the sentences
 3- We exclude the informativeness since it is not applicable for tweets
 '''
 
-sent_analyzer = SentimentIntensityAnalyzer()
+vader_sent_analyzer = SentimentIntensityAnalyzer()
 spell_checker = SpellChecker(distance=2)
+afinn_sent_analyzer = Afinn(emoticons=True)
 
 
 class Lexicons:
@@ -122,7 +124,14 @@ class TextFeatures:
         return len(spell_checker.unknown(tokens))
 
     def get_sentiment_feats(self):
-        return sent_analyzer.polarity_scores(self.text)
+        sentiment = {}
+        sentiment['afinn'] = afinn_sent_analyzer.score(self.text)
+        vader_scores = vader_sent_analyzer.polarity_scores(self.text)
+        sentiment['vader_pos'] = vader_scores['pos']
+        sentiment['vader_neg'] = vader_scores['neg']
+        sentiment['vader_comp'] = vader_scores['compound']
+        sentiment['vader_neu'] = vader_scores['neu']
+        return sentiment
 
     def get_bias_feats(self):
         '''
@@ -192,8 +201,10 @@ class TextFeatures:
     def get_moral_foundation_feats(self):
         return string_moral_values(self.text)
 
-
     def get_emotion_feats(self):
+        pass
+
+    def factuality(self):
         pass
 
 
