@@ -27,6 +27,11 @@ in order to compute sentiment of the sentences
 vader_sent_analyzer = SentimentIntensityAnalyzer()
 spell_checker = SpellChecker(distance=2)
 afinn_sent_analyzer = Afinn(emoticons=True)
+tokenizer = TweetTokenizer()
+
+
+def _count_misspells(tokens):
+    return len(spell_checker.unknown(tokens))
 
 
 class Lexicons:
@@ -48,15 +53,10 @@ class Lexicons:
             self.report_verbs = set([l.strip() for l in lex])
 
 
-class TextFeatures:
-    def __init__(self, text, tokenizer, lang='en'):
-        self.text = text
-        self.tokens = tokenizer.tokenize(normalize_post(text))
-        self.lang = lang
-
-    def get_structural_feats(self):
-        text = self.text
-        tokens = self.tokens
+class TextFeatures(object):
+    @staticmethod
+    def get_structural_feats(text):
+        tokens = tokenizer.tokenize(normalize_post(text))
 
         structural_feats = {}
         structural_feats['num_char'] = len(text)
@@ -120,63 +120,65 @@ class TextFeatures:
         structural_feats['num_VB'] = structural_feats['num_VB'] + structural_feats['num_VBPast'] + structural_feats[
             'num_VBPresent']
 
-    def _count_misspells(self, tokens):
-        return len(spell_checker.unknown(tokens))
-
-    def get_sentiment_feats(self):
+    @staticmethod
+    def get_sentiment_feats(text):
         sentiment = {}
-        sentiment['afinn'] = afinn_sent_analyzer.score(self.text)
-        vader_scores = vader_sent_analyzer.polarity_scores(self.text)
+        sentiment['afinn'] = afinn_sent_analyzer.score(text)
+        vader_scores = vader_sent_analyzer.polarity_scores(text)
         sentiment['vader_pos'] = vader_scores['pos']
         sentiment['vader_neg'] = vader_scores['neg']
         sentiment['vader_comp'] = vader_scores['compound']
         sentiment['vader_neu'] = vader_scores['neu']
         return sentiment
 
-    def get_bias_feats(self):
+    @staticmethod
+    def get_bias_feats(text, lexicon):
         '''
         credit to https://github.com/BenjaminDHorne/The-NELA-Toolkit
         :return:
         :rtype:
         '''
         bias = {}
-        sentences = TextBlob(self.text).sentences
+        sentences = TextBlob(text).sentences
         subjectivity = 0
         for sentence in sentences:
             subjectivity += sentence.sentiment.subjectivity
 
         bias['subjectivity'] = subjectivity
 
-        tokens = self.tokens
+        tokens = tokenizer.tokenize(normalize_post(text))
         bigrams = [" ".join(bg) for bg in ngrams(tokens, 2)]
         trigrams = [" ".join(tg) for tg in ngrams(tokens, 3)]
-        bias['bias_count'] = float(sum([tokens.count(b) for b in self.bias])) / len(tokens)
-        bias['assertives_count'] = float(sum([tokens.count(a) for a in self.assertives])) / len(tokens)
-        bias['factives_count'] = float(sum([tokens.count(f) for f in self.factives])) / len(tokens)
-        bias['hedges_count'] = sum([tokens.count(h) for h in self.hedges]) + sum(
-            [bigrams.count(h) for h in self.hedges]) + sum(
-            [trigrams.count(h) for h in self.hedges])
+        bias['bias_count'] = float(sum([tokens.count(b) for b in lexicon.bias])) / len(tokens)
+        bias['assertives_count'] = float(sum([tokens.count(a) for a in lexicon.assertives])) / len(tokens)
+        bias['factives_count'] = float(sum([tokens.count(f) for f in lexicon.factives])) / len(tokens)
+        bias['hedges_count'] = sum([tokens.count(h) for h in lexicon.hedges]) + sum(
+            [bigrams.count(h) for h in lexicon.hedges]) + sum(
+            [trigrams.count(h) for h in lexicon.hedges])
         bias['hedges_count'] = float(bias['hedges_count']) / len(tokens)
-        bias['implicatives_count'] = float(sum([tokens.count(i) for i in self.implicatives])) / len(tokens)
-        bias['report_verbs_count'] = float(sum([tokens.count(r) for r in self.report_verbs])) / len(tokens)
+        bias['implicatives_count'] = float(sum([tokens.count(i) for i in lexicon.implicatives])) / len(tokens)
+        bias['report_verbs_count'] = float(sum([tokens.count(r) for r in lexicon.report_verbs])) / len(tokens)
 
         return bias
 
-    def get_complexity_feats(self):
+    @staticmethod
+    def get_complexity_feats(text, lang='en'):
         complexity_feats = {}
+        tokens = tokenizer.tokenize((text))
+        num_tokens = len(tokens)
         # assign text entropy as text complexity
-        word_hist = Counter([token for token in self.tokens])
+        word_hist = Counter([token for token in tokens])
         entropy_sum = 0
         for word, count in word_hist.items():
-            entropy_sum += (count * (np.math.log10(self.num_tokens) - np.math.log10(count)))
+            entropy_sum += (count * (np.math.log10(num_tokens) - np.math.log10(count)))
 
-        complexity_feats['text_complexity'] = (1 / len(self.tokens)) * entropy_sum
+        complexity_feats['text_complexity'] = (1 / num_tokens) * entropy_sum
 
         # assign count of misspelling words
-        complexity_feats['num_spelling_errors'] = self._count_misspells(self.tokens)
+        complexity_feats['num_spelling_errors'] = _count_misspells(tokens)
 
         # assign readability metrics
-        readability_metrics = readability.getmeasures(self.text, lang=self.lang)
+        readability_metrics = readability.getmeasures(text, lang=lang)
         complexity_feats['kincaid'] = readability_metrics['readability grades']['Kincaid']
         complexity_feats['ari'] = readability_metrics['readability grades']['ARI']
         complexity_feats['coleman_liau'] = readability_metrics['readability grades']['Coleman-Liau']
@@ -187,9 +189,10 @@ class TextFeatures:
 
         return complexity_feats
 
-    def get_social_media_specific_feats(self, social_media='Twitter'):
+    @staticmethod
+    def get_social_media_specific_feats(text, social_media='Twitter'):
         social_media_specific_feats = {}
-        text = handle_twitter_specific_tags(self.text)
+        text = handle_twitter_specific_tags(text)
         social_media_specific_feats['num_url'] = text.count('$URL$')
 
         if social_media == 'Twitter':
@@ -198,18 +201,29 @@ class TextFeatures:
 
         return social_media_specific_feats
 
-    def get_moral_foundation_feats(self):
-        return string_moral_values(self.text)
+    @staticmethod
+    def get_moral_foundation_feats(text):
+        return string_moral_values(text)
 
-    def get_emotion_feats(self):
+    @staticmethod
+    def get_emotion_feats(text):
         pass
 
-    def factuality(self):
+    @staticmethod
+    def get_factuality(text):
         pass
+
+
+class Engagements:
+    pass
+
+
+class Media:
+    pass
 
 
 if __name__ == '__main__':
     text = 'France: :-) :D @twitter frnace !!!!!! ?????? ,,, 10 people dead after shooting at HQ of satirical weekly newspaper #CharlieHebdo, according to witnesses http:\/\/t.co\/FkYxGmuS58'
-    tokenizer = TweetTokenizer()
-    results = TextFeatures(text, tokenizer).get_moral_foundation_feats()
+    lexicon = Lexicons()
+    results = TextFeatures().get_bias_feats(text, lexicon)
     print(results)
