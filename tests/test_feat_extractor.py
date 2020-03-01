@@ -6,8 +6,8 @@ import sys
 
 import pytest
 
-sys.path.append(os.path.join(os.path.dirname(__file__), os.pardir, '../src'))
-from src import feat_extractor
+sys.path.append(os.path.join(os.path.dirname(__file__), os.pardir, '../coinform_content_analysis'))
+from coinform_content_analysis import feat_extractor
 
 @pytest.fixture
 def sample_text():

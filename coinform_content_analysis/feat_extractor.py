@@ -12,7 +12,7 @@ from nltk.util import ngrams
 from spellchecker import SpellChecker
 from textblob import TextBlob
 
-from src.preprocessing import normalize_post, handle_twitter_specific_tags
+from coinform_content_analysis.preprocessing import normalize_post, handle_twitter_specific_tags
 
 '''
 This package contains content features for measuring the credibility.

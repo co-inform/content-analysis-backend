@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-"""Tests for `src` package."""
+"""Tests for `coinform_content_analysis` package."""
 import pytest
 import os
 import json
