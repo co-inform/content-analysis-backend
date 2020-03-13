@@ -2,7 +2,10 @@
 content-analysis-backend
 ========================
 
-install the project: bash install.sh
+install the project:
+```
+bash install.sh
+```
 
 extract features:
 ```
