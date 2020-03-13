@@ -2,15 +2,16 @@ import os
 from collections import Counter
 
 import numpy as np
-import readability
 from afinn import Afinn
 from moralstrength import string_moral_values
 from nltk.sentiment.vader import SentimentIntensityAnalyzer
 from nltk.tag import pos_tag
 from nltk.tokenize import TweetTokenizer
 from nltk.util import ngrams
+from readability import Readability
 from spellchecker import SpellChecker
 from textblob import TextBlob
+import nltk
 
 from coinform_content_analysis.preprocessing import normalize_post, handle_twitter_specific_tags
 
@@ -24,6 +25,8 @@ in order to compute sentiment of the sentences
 3- We exclude the informativeness since it is not applicable for tweets
 '''
 
+nltk.download('vader_lexicon')
+
 vader_sent_analyzer = SentimentIntensityAnalyzer()
 spell_checker = SpellChecker(distance=2)
 afinn_sent_analyzer = Afinn(emoticons=True)
@@ -35,7 +38,7 @@ def _count_misspells(tokens):
 
 
 class Lexicons:
-    def __init__(self, folder='./data/lexicons'):
+    def __init__(self, folder):
         # =========== [Mejova et al, 2014] =======================
         with open(os.path.join(folder, "bias-lexicon.txt")) as lex:
             self.bias = set([l.strip() for l in lex])
@@ -53,11 +56,13 @@ class Lexicons:
             self.report_verbs = set([l.strip() for l in lex])
 
 
+lexicon = Lexicons(folder='data/lexicons')
+
+
 class TextFeatures(object):
     @staticmethod
     def get_structural_feats(text):
         tokens = tokenizer.tokenize(normalize_post(text))
-
         structural_feats = {}
         structural_feats['num_char'] = len(text)
         structural_feats['num_exclamations'] = sum(1 for char in text if char == '!')
@@ -83,6 +88,7 @@ class TextFeatures(object):
         structural_feats['num_VBPast'] = 0
         structural_feats['num_VBP'] = 0
         structural_feats['num_VBZ'] = 0
+        structural_feats['num_VBG'] = 0
         structural_feats['num_VB'] = 0
 
         for tag, count in tag_hist.items():
@@ -119,6 +125,7 @@ class TextFeatures(object):
                                             structural_feats['num_VBZ']
         structural_feats['num_VB'] = structural_feats['num_VB'] + structural_feats['num_VBPast'] + structural_feats[
             'num_VBPresent']
+        return structural_feats
 
     @staticmethod
     def get_sentiment_feats(text):
@@ -132,32 +139,39 @@ class TextFeatures(object):
         return sentiment
 
     @staticmethod
-    def get_bias_feats(text, lexicon):
+    def get_bias_feats(text):
         '''
         credit to https://github.com/BenjaminDHorne/The-NELA-Toolkit
         :return:
         :rtype:
         '''
         bias = {}
-        sentences = TextBlob(text).sentences
-        subjectivity = 0
-        for sentence in sentences:
-            subjectivity += sentence.sentiment.subjectivity
+        subjectivity = -100
+        if text:
+            sentences = TextBlob(text).sentences
+            subjectivity = 0
+            for sentence in sentences:
+                subjectivity += sentence.sentiment.subjectivity
 
         bias['subjectivity'] = subjectivity
 
         tokens = tokenizer.tokenize(normalize_post(text))
         bigrams = [" ".join(bg) for bg in ngrams(tokens, 2)]
         trigrams = [" ".join(tg) for tg in ngrams(tokens, 3)]
-        bias['bias_count'] = float(sum([tokens.count(b) for b in lexicon.bias])) / len(tokens)
-        bias['assertives_count'] = float(sum([tokens.count(a) for a in lexicon.assertives])) / len(tokens)
-        bias['factives_count'] = float(sum([tokens.count(f) for f in lexicon.factives])) / len(tokens)
+        num_tokens = len(tokens)
+        bias['bias_count'] = float(sum([tokens.count(b) for b in lexicon.bias])) / num_tokens if num_tokens > 0 else 0
+        bias['assertives_count'] = float(
+            sum([tokens.count(a) for a in lexicon.assertives])) / num_tokens if num_tokens > 0 else 0
+        bias['factives_count'] = float(
+            sum([tokens.count(f) for f in lexicon.factives])) / num_tokens if num_tokens > 0 else 0
         bias['hedges_count'] = sum([tokens.count(h) for h in lexicon.hedges]) + sum(
             [bigrams.count(h) for h in lexicon.hedges]) + sum(
             [trigrams.count(h) for h in lexicon.hedges])
-        bias['hedges_count'] = float(bias['hedges_count']) / len(tokens)
-        bias['implicatives_count'] = float(sum([tokens.count(i) for i in lexicon.implicatives])) / len(tokens)
-        bias['report_verbs_count'] = float(sum([tokens.count(r) for r in lexicon.report_verbs])) / len(tokens)
+        bias['hedges_count'] = float(bias['hedges_count']) / len(tokens) if num_tokens > 0 else 0
+        bias['implicatives_count'] = float(
+            sum([tokens.count(i) for i in lexicon.implicatives])) / num_tokens if num_tokens > 0 else 0
+        bias['report_verbs_count'] = float(
+            sum([tokens.count(r) for r in lexicon.report_verbs])) / num_tokens if num_tokens > 0 else 0
 
         return bias
 
@@ -172,20 +186,34 @@ class TextFeatures(object):
         for word, count in word_hist.items():
             entropy_sum += (count * (np.math.log10(num_tokens) - np.math.log10(count)))
 
-        complexity_feats['text_complexity'] = (1 / num_tokens) * entropy_sum
+        complexity_feats['text_complexity'] = (1 / num_tokens) * entropy_sum if num_tokens > 0 else -100
 
         # assign count of misspelling words
         complexity_feats['num_spelling_errors'] = _count_misspells(tokens)
 
         # assign readability metrics
-        readability_metrics = readability.getmeasures(text, lang=lang)
-        complexity_feats['kincaid'] = readability_metrics['readability grades']['Kincaid']
-        complexity_feats['ari'] = readability_metrics['readability grades']['ARI']
-        complexity_feats['coleman_liau'] = readability_metrics['readability grades']['Coleman-Liau']
-        complexity_feats['lix'] = readability_metrics['readability grades']['LIX']
-        complexity_feats['flesch'] = readability_metrics['readability grades']['FleschReadingEase']
-        complexity_feats['rix'] = readability_metrics['readability grades']['RIX']
-        complexity_feats['smog'] = readability_metrics['readability grades']['SMOGIndex']
+        readability_metrics = Readability(text)
+        try:
+            complexity_feats['flesch-kincaid'] = readability_metrics.flesch_kincaid().score
+        except:
+            complexity_feats['flesch-kincaid'] = -100
+        try:
+            complexity_feats['ari'] = readability_metrics.ari().score
+        except:
+            complexity_feats['ari'] = -100
+        try:
+            complexity_feats['coleman_liau'] = readability_metrics.coleman_liau().score
+        except:
+            complexity_feats['coleman_liau'] = -100
+        try:
+            complexity_feats['flesch'] = readability_metrics.flesch().score
+        except:
+            complexity_feats['flesch'] = -100
+
+        try:
+            complexity_feats['smog'] = readability_metrics.smog().score
+        except:
+            complexity_feats['smog'] = -100
 
         return complexity_feats
 
@@ -193,13 +221,17 @@ class TextFeatures(object):
     def get_social_media_specific_feats(text, social_media='Twitter'):
         social_media_specific_feats = {}
         text = handle_twitter_specific_tags(text)
-        social_media_specific_feats['num_url'] = text.count('$URL$')
 
         if social_media == 'Twitter':
             social_media_specific_feats['num_mention'] = text.count('$MENTION$')
             social_media_specific_feats['num_hashtag'] = text.count('$HASHTAG$')
 
         return social_media_specific_feats
+
+    @staticmethod
+    def get_linked_feat(text):
+        text = handle_twitter_specific_tags(text)
+        return {'num_url': text.count('$URL$')}
 
     @staticmethod
     def get_moral_foundation_feats(text):
@@ -212,6 +244,21 @@ class TextFeatures(object):
     @staticmethod
     def get_factuality(text):
         pass
+
+    def get_all_feats(self, text):
+        feats = {}
+        feats['bias'] = self.get_bias_feats(text, lexicon).values()
+        feats['moral_foundation'] = self.get_moral_foundation_feats(text).values()
+        feats['complexity'] = self.get_complexity_feats(text).values()
+        # todo implement this
+        # self.get_emotion_feats()
+        # self.get_factuality()
+        feats['linked_feat'] = self.get_linked_feat(text).values()
+        feats['structural'] = self.get_structural_feats(text).values()
+        return feats
+
+    def get_all_feat_names(self):
+        return ['bias', 'moral_foundation', 'complexity', 'linked_feat', 'structural']
 
 
 class Engagements:

@@ -2,6 +2,22 @@
 content-analysis-backend
 ========================
 
+install the project: bash install.sh
+
+extract features:
+```
+bash feature_extractor.sh
+```
+
+run experiments on classical models:
+```
+bash classical_experiments.sh
+```
+
+run experiments on transformers:
+```
+bash neural_experiments.sh
+```
 
 .. image:: https://img.shields.io/pypi/v/content_analysis_backend.svg
         :target: https://pypi.python.org/pypi/content_analysis_backend
