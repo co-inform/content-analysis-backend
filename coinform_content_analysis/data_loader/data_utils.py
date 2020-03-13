@@ -8,6 +8,7 @@ from pathlib import Path
 import numpy as np
 from loguru import logger
 from torchnlp.datasets.dataset import Dataset
+from coinform_content_analysis.preprocessing import handle_twitter_specific_tags
 
 from coinform_content_analysis.feat_extractor import TextFeatures
 
@@ -153,32 +154,38 @@ def extract_rumoureval2019_features():
     path = SEMEVAL_FEATS_TRAIN / '{task}_onlytext.pkl'.format(task=SEMEVAL_TASKA)
     if not path.exists():
         with open(path, 'wb') as file:
-            pickle.dump(X_stance_train, file)
+            cleaned_tweet = np.asarray([handle_twitter_specific_tags(text)for text in X_stance_train])
+            pickle.dump(cleaned_tweet, file)
 
     path = SEMEVAL_FEATS_TRAIN / '{task}_onlytext.pkl'.format(task=SEMEVAL_TASKB)
     if not path.exists():
         with open(path, 'wb') as file:
-            pickle.dump(X_veracity_train, file)
+            cleaned_tweet = np.asarray([handle_twitter_specific_tags(text)for text in X_veracity_train])
+            pickle.dump(cleaned_tweet, file)
 
     path = SEMEVAL_FEATS_DEV / '{task}_onlytext.pkl'.format(task=SEMEVAL_TASKA)
     if not path.exists():
         with open(path, 'wb') as file:
-            pickle.dump(X_stance_dev, file)
+            cleaned_tweet = np.asarray([handle_twitter_specific_tags(text)for text in X_stance_dev])
+            pickle.dump(cleaned_tweet, file)
 
     path = SEMEVAL_FEATS_DEV / '{task}_onlytext.pkl'.format(task=SEMEVAL_TASKB)
     if not path.exists():
         with open(path, 'wb') as file:
-            pickle.dump(X_veracity_dev, file)
+            cleaned_tweet = np.asarray([handle_twitter_specific_tags(text)for text in X_veracity_dev])
+            pickle.dump(cleaned_tweet, file)
 
     path = SEMEVAL_FEATS_TEST / '{task}_onlytext.pkl'.format(task=SEMEVAL_TASKA)
     if not path.exists():
         with open(path, 'wb') as file:
-            pickle.dump(X_stance_test, file)
+            cleaned_tweet = np.asarray([handle_twitter_specific_tags(text)for text in X_stance_test])
+            pickle.dump(cleaned_tweet, file)
 
     path = SEMEVAL_FEATS_TEST / '{task}_onlytext.pkl'.format(task=SEMEVAL_TASKB)
     if not path.exists():
         with open(path, 'wb') as file:
-            pickle.dump(X_veracity_test, file)
+            cleaned_tweet = np.asarray([handle_twitter_specific_tags(text)for text in X_veracity_test])
+            pickle.dump(cleaned_tweet, file)
 
     # ======================== Save the labels ===============================================
     path = SEMEVAL_FEATS_TRAIN / '{task}_label.pkl'.format(task=SEMEVAL_TASKA)
