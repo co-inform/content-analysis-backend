@@ -1,6 +1,7 @@
 ========================
 content-analysis-backend
 ========================
+1- Install requirements: pip install -r requirements.txt
 
 install the project:
 ```
