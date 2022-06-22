@@ -7,7 +7,7 @@ afinn==0.1
 moralstrength==0.2.3
 torch==1.4.0
 transformers==2.4.1
-numpy==1.17.2
+numpy==1.22.0
 pyspellchecker==0.5.3
 contractions==0.0.24
 py-readability-metrics
