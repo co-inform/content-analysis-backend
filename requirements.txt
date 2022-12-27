@@ -1,6 +1,6 @@
 pip == 20.0.2
 nltk==3.4.5
-setuptools==41.0.0
+setuptools==65.5.1
 textblob==0.15.3
 pytest==5.1.2
 afinn==0.1
